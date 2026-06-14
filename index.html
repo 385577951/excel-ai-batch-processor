@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel AI Batch Processor - 智能 Excel 批量处理工具</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  /* Apple Design System */
+  --apple-blue: #007AFF;
+  --apple-blue-hover: #0056D6;
+  --apple-green: #34C759;
+  --apple-red: #FF3B30;
+  --apple-orange: #FF9500;
+  --apple-purple: #AF52DE;
+  --apple-gray: #8E8E93;
+  --apple-gray2: #AEAEB2;
+  --apple-gray3: #C7C7CC;
+  --apple-gray4: #D1D1D6;
+  --apple-gray5: #E5E5EA;
+  --apple-gray6: #F2F2F7;
+  
+  --bg: #F5F5F7;
+  --card: #FFFFFF;
+  --text: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --border: #E5E5EA;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang SC", "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Apple Header */
+header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #007AFF, #5AC8FA);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+header .subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+  font-weight: 400;
+}
+
+/* Main Container */
+.app-container {
+  display: flex;
+  height: calc(100vh - 69px);
+  gap: 0;
+}
+
+/* Sidebar - Apple Style */
+.sidebar {
+  width: 380px;
+  min-width: 380px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--apple-gray4);
+  border-radius: 3px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Apple Inputs */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-family: inherit;
+  background: #FAFAFC;
+  outline: none;
+  transition: var(--transition);
+  color: var(--text);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--apple-blue);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* API Key Row */
+.api-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toggle-key {
+  padding: 12px 14px;
+  background: var(--apple-gray6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-key:hover {
+  background: var(--apple-gray5);
+}
+
+/* Upload Zone - Apple Style */
+.upload-zone {
+  border: 2px dashed var(--apple-gray4);
+  border-radius: var(--radius);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: #FAFAFC;
+  position: relative;
+}
+
+.upload-zone:hover,
+.upload-zone.dragover {
+  border-color: var(--apple-blue);
+  background: #F0F7FF;
+}
+
+.upload-zone .icon {
+  font-size: 42px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.upload-zone .text {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.upload-zone .text.secondary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.file-info {
+  display: none;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--apple-gray6);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  align-items: center;
+  gap: 8px;
+}
+
+.file-info.show {
+  display: flex;
+}
+
+.file-info .badge {
+  background: var(--apple-blue);
+  color: white;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Column Selector */
+.column-selector {
+  display: none;
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--apple-gray6);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.column-selector.show {
+  display: block;
+}
+
+.column-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.column-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.column-item:hover {
+  border-color: var(--apple-blue);
+}
+
+.column-item.selected {
+  background: var(--apple-blue);
+  color: white;
+  border-color: var(--apple-blue);
+}
+
+.column-item input {
+  accent-color: var(--apple-blue);
+  width: 15px;
+  height: 15px;
+}
+
+/* Prompt Templates Button */
+.template-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--apple-gray6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.template-btn:hover {
+  background: var(--apple-gray5);
+}
+
+/* Config */
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.config-field label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+/* Buttons - Apple Style */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--apple-blue);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--apple-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.35);
+}
+
+.btn-primary:active {
+  transform: scale(0.985);
+}
+
+.btn-secondary {
+  background: var(--apple-gray6);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--apple-gray5);
+}
+
+.btn-danger {
+  background: var(--apple-red);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #E02D22;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Progress */
+.progress-area {
+  padding: 16px;
+  background: var(--apple-gray6);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  display: none;
+}
+
+.progress-area.show {
+  display: block;
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: var(--apple-gray4);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--apple-blue), #5AC8FA);
+  border-radius: 999px;
+  transition: width 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.progress-text .count {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Results Panel */
+.results-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.results-header {
+  padding: 18px 28px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.results-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.count-badge {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.results-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Search Bar */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--apple-gray6);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 16px;
+  width: 260px;
+  transition: var(--transition);
+}
+
+.search-bar:focus-within {
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-bar .icon {
+  color: var(--apple-gray2);
+  font-size: 16px;
+}
+
+/* Results List */
+.results-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+  background: var(--bg);
+}
+
+.results-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.results-list::-webkit-scrollbar-thumb {
+  background: var(--apple-gray4);
+  border-radius: 3px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 100px 40px;
+  color: var(--text-secondary);
+}
+
+.empty-state .icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state .text {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Result Cards - Apple Style */
+.result-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.result-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.result-card.processing {
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.12);
+}
+
+.result-card.error {
+  border-color: var(--apple-red);
+}
+
+.result-card.done {
+  border-color: #34C759;
+}
+
+.result-card-header {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FAFAFC;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.result-card-header .info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.result-card-header .num {
+  background: var(--apple-blue);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-card-header .rows {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-tag {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-tag.waiting { background: var(--apple-gray5); color: var(--text-secondary); }
+.status-tag.running { background: #E5F0FF; color: var(--apple-blue); }
+.status-tag.done { background: #E8F9E8; color: #34C759; }
+.status-tag.error { background: #FFE5E5; color: var(--apple-red); }
+
+.result-card-body {
+  padding: 18px 20px;
+  display: none;
+}
+
+.result-card-body.open {
+  display: block;
+}
+
+.result-card-body .label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+.result-card-body .input-box,
+.result-card-body .output-box {
+  padding: 14px 16px;
+  background: #FAFAFC;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.result-card-body .input-box {
+  background: #FFF9E6;
+  border-color: #FFE8A3;
+}
+
+.result-card-body .output-box {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.result-card-body .error-msg {
+  color: var(--apple-red);
+  font-size: 14px;
+  padding: 12px 16px;
+  background: #FFF0F0;
+  border-radius: var(--radius-sm);
+  border: 1px solid #FFCCCC;
+}
+
+/* Batch Actions */
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.batch-actions .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  padding: 14px 20px;
+  border-radius: 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  animation: slideIn 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  max-width: 380px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast.success { background: var(--apple-green); }
+.toast.error { background: var(--apple-red); }
+.toast.info { background: var(--apple-blue); }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Modal - Apple Style */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(8px);
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: 16px;
+  width: 92%;
+  max-width: 720px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: modalPop 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.template-card {
+  padding: 18px;
+  background: var(--apple-gray6);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.template-card:hover {
+  border-color: var(--apple-blue);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.template-card .title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.template-card .desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.template-card .example {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--apple-blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: none;
+  padding: 12px 28px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 24px;
+  font-size: 13px;
+}
+
+.stats-bar.show {
+  display: flex;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-item .value {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-item .label {
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .sidebar { width: 340px; min-width: 340px; }
+}
+
+@media (max-width: 768px) {
+  .app-container { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; max-height: 48vh; }
+  .results-panel { height: 52vh; }
+  .search-bar { width: 180px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="app-icon">AI</div>
+    <div>
+      <h1>Excel AI 批量处理</h1>
+      <div class="subtitle">智能 · 高效 · 专业</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="font-size: 13px; color: var(--text-secondary);">DeepSeek API</div>
+  </div>
+</header>
+
+<div class="app-container">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- API -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">API 配置</div>
+      </div>
+      <div class="api-row">
+        <input type="password" id="apiKey" placeholder="输入 DeepSeek API Key (sk-...)" autocomplete="off" />
+        <button class="toggle-key" id="toggleKey" title="显示/隐藏">👁</button>
+      </div>
+      <div class="api-status" id="apiStatus" style="display:none; font-size:12px; margin-top:6px;"></div>
+    </div>
+
+    <!-- Upload -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">数据上传</div>
+      </div>
+      <div class="upload-zone" id="uploadZone">
+        <div class="icon">📂</div>
+        <div class="text">点击或拖拽上传 Excel 文件</div>
+        <div class="text secondary">支持 .xlsx / .xls · 自动识别表头</div>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;" />
+      
+      <div class="file-info" id="fileInfo">
+        <span class="badge" id="fileName">data.xlsx</span>
+        <span id="fileRows">0 行</span>
+      </div>
+
+      <!-- Column Selector -->
+      <div class="column-selector" id="columnSelector">
+        <div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">选择要处理的列（支持多列）</div>
+        <div class="column-list" id="columnList"></div>
+        <div style="font-size:11px; color:var(--text-secondary); margin-top:8px;">
+          已选 <span id="selectedCols">0</span> 列 → {Value1}、{Value2}...（按选择顺序）
+        </div>
+      </div>
+    </div>
+
+    <!-- Prompt -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Prompt 模板</div>
+        <button class="template-btn" id="openTemplates">
+          <span>📚</span> 模板库
+        </button>
+      </div>
+      <textarea id="promptTemplate" placeholder="输入 Prompt，支持 {Value}（合并）或 {Value1}、{Value2}（分开）&#10;&#10;示例：根据第一列{Value1}和第二列{Value2}，计算脚的数量"></textarea>
+      <div style="font-size:11px; color:var(--text-secondary); margin-top:6px; display:flex; align-items:center; gap:8px;">
+        支持 {Value} 或 {Value1}、{Value2}（按选择顺序）
+        <button id="previewPromptBtn" class="template-btn" style="padding:4px 10px;font-size:11px;">预览第一条</button>
+      </div>
+    </div>
+
+    <!-- Batch Config -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">批处理设置</div>
+      </div>
+      <div class="config-grid">
+        <div class="config-field">
+          <label>每批行数</label>
+          <input type="number" id="batchSize" value="1" min="1" max="50" />
+        </div>
+        <div class="config-field">
+          <label>分隔符</label>
+          <select id="separator">
+            <option value="\n">换行符</option>
+            <option value="、">顿号</option>
+            <option value=",">逗号</option>
+            <option value=";">分号</option>
+            <option value="|">竖线</option>
+            <option value="custom">自定义</option>
+          </select>
+        </div>
+      </div>
+      <div id="customSepRow" style="display:none; margin-top:8px;">
+        <input type="text" id="customSep" placeholder="自定义分隔符" style="width:100%;" />
+      </div>
+    </div>
+
+    <!-- Advanced Settings -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">高级设置</div>
+      </div>
+      <div class="config-grid">
+        <div class="config-field">
+          <label>模型</label>
+          <select id="modelSelect">
+            <option value="deepseek-chat">deepseek-chat</option>
+            <option value="deepseek-reasoner">deepseek-reasoner</option>
+          </select>
+        </div>
+        <div class="config-field">
+          <label>温度</label>
+          <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1" />
+        </div>
+      </div>
+      <div class="config-field" style="margin-top:8px;">
+        <label>最大 Token</label>
+        <input type="number" id="maxTokens" value="4096" min="256" max="8192" />
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">操作</div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" id="btnStart" style="flex:1;">▶ 开始处理</button>
+        <button class="btn btn-danger" id="btnStop" disabled style="flex:0 0 auto; padding:12px 16px;">⏹</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-area" id="progressArea">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text">
+        <span id="progressDetail">准备中...</span>
+        <span class="count" id="progressCount">0 / 0</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Results -->
+  <div class="results-panel">
+    <div class="results-header">
+      <div>
+        <h2>处理结果 <span class="count-badge" id="resultCount">(0)</span></h2>
+      </div>
+      <div class="results-actions">
+        <div class="search-bar">
+          <span class="icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="搜索结果..." />
+        </div>
+        <button class="btn btn-secondary" id="btnClear">清空</button>
+        <button class="btn btn-primary" id="btnExport" disabled>导出 Excel</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item"><span class="value" id="statTotal">0</span> <span class="label">总批次</span></div>
+      <div class="stat-item"><span class="value" id="statSuccess" style="color:#34C759">0</span> <span class="label">成功</span></div>
+      <div class="stat-item"><span class="value" id="statFailed" style="color:#FF3B30">0</span> <span class="label">失败</span></div>
+      <div class="stat-item"><span class="value" id="statAvgTime">-</span> <span class="label">平均用时</span></div>
+    </div>
+
+    <div class="results-list" id="resultsList">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📋</div>
+        <div class="text">上传 Excel 文件并点击「开始处理」<br>结果将显示在这里</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Templates Modal -->
+<div class="modal" id="templatesModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📚 Prompt 模板库</h3>
+      <button onclick="closeTemplatesModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#8E8E93;">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="template-grid" id="templateGrid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // State
+  var appState = {
+    rawData: [],
+    headers: [],
+    selectedColumns: [],
+    batches: [],
+    isRunning: false,
+    stopFlag: false,
+    processingTimes: []
+  };
+
+  // DOM
+  var $ = function(id) { return document.getElementById(id); };
+  
+  var uploadZone = $('uploadZone');
+  var fileInput = $('fileInput');
+  var fileInfo = $('fileInfo');
+  var fileName = $('fileName');
+  var fileRows = $('fileRows');
+  var columnSelector = $('columnSelector');
+  var columnList = $('columnList');
+  var selectedColsEl = $('selectedCols');
+  
+  var apiKeyInput = $('apiKey');
+  var toggleKey = $('toggleKey');
+  var apiStatus = $('apiStatus');
+  
+  var promptTemplate = $('promptTemplate');
+  var batchSizeInput = $('batchSize');
+  var separatorSelect = $('separator');
+  var customSepRow = $('customSepRow');
+  var customSepInput = $('customSep');
+  
+  var modelSelect = $('modelSelect');
+  var temperatureInput = $('temperature');
+  var maxTokensInput = $('maxTokens');
+  
+  var btnStart = $('btnStart');
+  var btnStop = $('btnStop');
+  var btnExport = $('btnExport');
+  var btnClear = $('btnClear');
+  var openTemplatesBtn = $('openTemplates');
+  
+  var progressArea = $('progressArea');
+  var progressFill = $('progressFill');
+  var progressDetail = $('progressDetail');
+  var progressCount = $('progressCount');
+  
+  var resultsList = $('resultsList');
+  var emptyState = $('emptyState');
+  var resultCount = $('resultCount');
+  var searchInput = $('searchInput');
+  var statsBar = $('statsBar');
+  
+  var toastContainer = $('toastContainer');
+  var templatesModal = $('templatesModal');
+
+  // Apple Toast
+  function showToast(msg, type) {
+    type = type || 'info';
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = `<span>${msg}</span>`;
+    toastContainer.appendChild(el);
+    setTimeout(function() { 
+      if (el.parentNode) el.parentNode.removeChild(el); 
+    }, 3400);
+  }
+
+  // Separator helper
+  function getSeparator() {
+    var val = separatorSelect.value;
+    if (val === 'custom') return customSepInput.value || ', ';
+    if (val === '\\n') return '\n';
+    return val;
+  }
+
+  // Toggle API key
+  toggleKey.addEventListener('click', function() {
+    if (apiKeyInput.type === 'password') {
+      apiKeyInput.type = 'text';
+      toggleKey.textContent = '🙈';
+    } else {
+      apiKeyInput.type = 'password';
+      toggleKey.textContent = '👁';
+    }
+  });
+
+  separatorSelect.addEventListener('change', function() {
+    customSepRow.style.display = this.value === 'custom' ? 'block' : 'none';
+  });
+
+  // Upload
+  uploadZone.addEventListener('click', function() { fileInput.click(); });
+
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+  });
+  uploadZone.addEventListener('dragleave', function() {
+    this.classList.remove('dragover');
+  });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', function() {
+    if (this.files.length) handleFile(this.files[0]);
+  });
+
+  function handleFile(file) {
+    var ext = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls'].includes(ext)) {
+      showToast('请上传 .xlsx 或 .xls 格式的文件', 'error');
+      return;
+    }
+    
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = new Uint8Array(e.target.result);
+        var wb = XLSX.read(data, {type:'array'});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        if (!ws) { showToast('无法读取工作表', 'error'); return; }
+        
+        var json = XLSX.utils.sheet_to_json(ws, {header:1});
+        if (!json || json.length === 0) { showToast('Excel 为空', 'error'); return; }
+
+        // Get headers from first row
+        var hasHeader = true; // assume first row is header
+        appState.headers = json[0].map(function(h, i) { 
+          return h ? String(h).trim() : '列' + (i+1); 
+        });
+        
+        // Data rows
+        var rawData = json.slice(hasHeader ? 1 : 0).map(function(row) {
+          return row.map(function(cell) {
+            return cell !== undefined && cell !== null ? String(cell).trim() : '';
+          });
+        }).filter(function(row) {
+          return row.some(function(cell) { return cell !== ''; });
+        });
+
+        if (rawData.length === 0) { showToast('没有有效数据', 'error'); return; }
+
+        appState.rawData = rawData;
+
+        // Update UI
+        fileInfo.classList.add('show');
+        fileName.textContent = file.name;
+        fileRows.textContent = rawData.length + ' 行';
+
+        // Show column selector
+        renderColumnSelector();
+        columnSelector.classList.add('show');
+
+        showToast('成功加载 ' + rawData.length + ' 行数据', 'success');
+      } catch(err) {
+        showToast('读取 Excel 失败: ' + err.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // Column Selector
+  function renderColumnSelector() {
+    columnList.innerHTML = '';
+    appState.selectedColumns = [];
+    
+    appState.headers.forEach(function(header, index) {
+      var item = document.createElement('div');
+      item.className = 'column-item';
+      item.innerHTML = `
+        <input type="checkbox" checked>
+        <span>${header}</span>
+      `;
+      
+      var checkbox = item.querySelector('input');
+      checkbox.checked = true;
+      appState.selectedColumns.push(index);
+      
+      checkbox.addEventListener('change', function() {
+        if (this.checked) {
+          if (!appState.selectedColumns.includes(index)) appState.selectedColumns.push(index);
+          item.classList.add('selected');
+        } else {
+          appState.selectedColumns = appState.selectedColumns.filter(function(i) { return i !== index; });
+          item.classList.remove('selected');
+        }
+        selectedColsEl.textContent = appState.selectedColumns.length;
+      });
+      
+      item.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'INPUT') {
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event('change'));
+        }
+      });
+      
+      item.classList.add('selected');
+      columnList.appendChild(item);
+    });
+    
+    selectedColsEl.textContent = appState.selectedColumns.length;
+  }
+
+  // Get API Key
+  function getApiKey() {
+    var key = apiKeyInput.value.trim();
+    if (!key) {
+      showToast('请输入 DeepSeek API Key', 'error');
+      return null;
+    }
+    return key;
+  }
+
+  // Generate batches with multi-column support (supports {Value}, {Value1}, {Value2}...)
+  function generateBatches() {
+    var data = appState.rawData;
+    var batchSize = parseInt(batchSizeInput.value) || 1;
+    var sep = getSeparator();
+    var template = promptTemplate.value.trim();
+    
+    if (!template) { showToast('请输入 Prompt 模板', 'error'); return null; }
+    if (data.length === 0) { showToast('请先上传 Excel 数据', 'error'); return null; }
+    if (appState.selectedColumns.length === 0) { showToast('请至少选择一列', 'error'); return null; }
+
+    var batches = [];
+    var colCount = appState.selectedColumns.length;
+    
+    for (var i = 0; i < data.length; i += batchSize) {
+      var chunk = data.slice(i, i + batchSize);
+      
+      // Build per-row values for each selected column
+      var rowValues = chunk.map(function(row) {
+        return appState.selectedColumns.map(function(colIdx) {
+          return row[colIdx] || '';
+        });
+      });
+      
+      // Build {Value} (old style - joined with separator)
+      var valueStr = rowValues.map(function(vals) {
+        return vals.join(' | ');
+      }).join(sep);
+      
+      // Build {Value1}, {Value2} ... (new style - one placeholder per column)
+      var prompt = template;
+      
+      // Replace {Value} (legacy)
+      prompt = prompt.replace(/\{Value\}/gi, valueStr);
+      
+      // Replace {Value1}, {Value2}, ... (case-insensitive, ignore spaces)
+      for (var c = 0; c < colCount; c++) {
+        var colValues = rowValues.map(function(vals) {
+          return vals[c] || '';
+        }).join(sep);
+        
+        // Support {Value1}, { value1 }, {VALUE1} etc.
+        var placeholderRegex = new RegExp('\\{\\s*Value' + (c + 1) + '\\s*\\}', 'gi');
+        prompt = prompt.replace(placeholderRegex, colValues);
+      }
+      
+      var rowStart = i + 1;
+      var rowEnd = Math.min(i + batchSize, data.length);
+      
+      batches.push({
+        batchIndex: batches.length,
+        rows: chunk,
+        rowRange: rowStart + '-' + rowEnd,
+        prompt: prompt,
+        output: null,
+        status: 'waiting',
+        error: null,
+        startTime: null,
+        endTime: null
+      });
+    }
+    return batches;
+  }
+
+  // Call DeepSeek with advanced params
+  function callDeepSeek(prompt, apiKey) {
+    var model = modelSelect.value;
+    var temperature = parseFloat(temperatureInput.value) || 0.7;
+    var maxTokens = parseInt(maxTokensInput.value) || 4096;
+
+    return fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: temperature,
+        max_tokens: maxTokens
+      })
+    }).then(function(resp) {
+      if (!resp.ok) {
+        return resp.json().then(function(err) {
+          throw new Error('API 错误 (' + resp.status + '): ' + (err.error?.message || JSON.stringify(err)));
+        }).catch(function(e) {
+          if (e.message.startsWith('API 错误')) throw e;
+          throw new Error('API 错误 (' + resp.status + '): ' + resp.statusText);
+        });
+      }
+      return resp.json();
+    }).then(function(json) {
+      var content = json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
+      if (!content) throw new Error('API 返回格式异常');
+      return content;
+    });
+  }
+
+  // Render results
+  function renderResults(batches) {
+    emptyState.style.display = 'none';
+    
+    var existingCards = resultsList.querySelectorAll('.result-card');
+    var existingCount = existingCards.length;
+
+    for (var i = 0; i < batches.length; i++) {
+      var b = batches[i];
+      var card;
+      if (i < existingCount) {
+        card = existingCards[i];
+        updateCard(card, b);
+      } else {
+        card = createCard(b);
+        resultsList.appendChild(card);
+      }
+    }
+
+    while (resultsList.children.length > batches.length + 1) {
+      var last = resultsList.lastChild;
+      if (last && last.classList.contains('empty-state')) break;
+      if (last) resultsList.removeChild(last);
+    }
+
+    updateResultCount();
+    updateStats();
+  }
+
+  function updateResultCount() {
+    var done = appState.batches.filter(function(b) { return b.status === 'done'; }).length;
+    resultCount.textContent = '(' + done + '/' + appState.batches.length + ')';
+  }
+
+  function createCard(batch) {
+    var card = document.createElement('div');
+    card.className = 'result-card pending';
+    card.dataset.index = batch.batchIndex;
+
+    var header = document.createElement('div');
+    header.className = 'result-card-header';
+    header.innerHTML = `
+      <div class="info">
+        <span class="num">#${batch.batchIndex + 1}</span>
+        <span class="rows">行 ${batch.rowRange}</span>
+      </div>
+      <span class="status-tag waiting" id="st-${batch.batchIndex}">⏳ 等待中</span>
+    `;
+    card.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'result-card-body';
+    body.innerHTML = `
+      <div class="label">📤 输入 Prompt</div>
+      <div class="input-box" id="ib-${batch.batchIndex}">${escapeHtml(batch.prompt)}</div>
+      
+      <div class="label">📥 输出结果</div>
+      <div class="output-box" id="ob-${batch.batchIndex}">等待处理...</div>
+      
+      <div class="batch-actions">
+        <button class="btn btn-secondary" onclick="retryBatch(${batch.batchIndex})">重新处理</button>
+        <button class="btn btn-secondary" onclick="editBatchPrompt(${batch.batchIndex})">编辑 Prompt</button>
+      </div>
+    `;
+    card.appendChild(body);
+
+    header.addEventListener('click', function() {
+      body.classList.toggle('open');
+    });
+
+    return card;
+  }
+
+  function updateCard(card, batch) {
+    card.className = 'result-card';
+    if (batch.status === 'waiting') card.classList.add('pending');
+    else if (batch.status === 'running') card.classList.add('processing');
+    else if (batch.status === 'error') card.classList.add('error');
+    else if (batch.status === 'done') card.classList.add('done');
+
+    var statusTag = card.querySelector('.status-tag');
+    if (statusTag) {
+      if (batch.status === 'waiting') {
+        statusTag.className = 'status-tag waiting';
+        statusTag.innerHTML = '⏳ 等待中';
+      } else if (batch.status === 'running') {
+        statusTag.className = 'status-tag running';
+        statusTag.innerHTML = '<span class="spinner" style="display:inline-block;width:12px;height:12px;border:2px solid #E5E5EA;border-top-color:#007AFF;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:4px;"></span>处理中';
+      } else if (batch.status === 'done') {
+        statusTag.className = 'status-tag done';
+        statusTag.innerHTML = '✓ 完成';
+      } else if (batch.status === 'error') {
+        statusTag.className = 'status-tag error';
+        statusTag.innerHTML = '✗ 失败';
+      }
+    }
+
+    var inputBox = card.querySelector('.input-box');
+    if (inputBox) inputBox.textContent = batch.prompt;
+
+    var outputBox = card.querySelector('.output-box');
+    if (outputBox) {
+      if (batch.status === 'waiting') {
+        outputBox.textContent = '等待处理...';
+      } else if (batch.status === 'running') {
+        outputBox.textContent = '正在请求 DeepSeek API...';
+      } else if (batch.status === 'done') {
+        outputBox.textContent = batch.output;
+      } else if (batch.status === 'error') {
+        outputBox.innerHTML = `<div class="error-msg">${escapeHtml(batch.error)}</div>`;
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Main processing
+  function startProcessing() {
+    var apiKey = getApiKey();
+    if (!apiKey) return;
+    if (appState.rawData.length === 0) { showToast('请先上传 Excel 数据', 'error'); return; }
+
+    var batches = generateBatches();
+    if (!batches) return;
+
+    appState.batches = batches;
+    appState.isRunning = true;
+    appState.stopFlag = false;
+    appState.processingTimes = [];
+
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+    btnExport.disabled = true;
+    btnClear.disabled = true;
+    progressArea.classList.add('show');
+    statsBar.classList.remove('show');
+
+    renderResults(batches);
+    processNext(0, apiKey);
+  }
+
+  function processNext(idx, apiKey) {
+    if (appState.stopFlag || idx >= appState.batches.length) {
+      finishProcessing();
+      return;
+    }
+
+    var batch = appState.batches[idx];
+    batch.status = 'running';
+    batch.startTime = Date.now();
+    
+    updateCardInPlace(idx, batch);
+    updateProgress(idx);
+
+    callDeepSeek(batch.prompt, apiKey).then(function(output) {
+      if (appState.stopFlag) {
+        finishProcessing();
+        return;
+      }
+      batch.output = output;
+      batch.status = 'done';
+      batch.endTime = Date.now();
+      appState.processingTimes.push(batch.endTime - batch.startTime);
+      
+      updateCardInPlace(idx, batch);
+      updateProgress(idx + 1);
+      processNext(idx + 1, apiKey);
+    }).catch(function(err) {
+      batch.status = 'error';
+      batch.error = err.message;
+      batch.endTime = Date.now();
+      updateCardInPlace(idx, batch);
+      updateProgress(idx + 1);
+      showToast('批次 #' + (idx + 1) + ' 失败', 'error');
+      processNext(idx + 1, apiKey);
+    });
+  }
+
+  function updateCardInPlace(idx, batch) {
+    var cards = resultsList.querySelectorAll('.result-card');
+    if (idx < cards.length) {
+      updateCard(cards[idx], batch);
+    }
+    updateResultCount();
+    updateStats();
+  }
+
+  function updateProgress(completed) {
+    var total = appState.batches.length;
+    var pct = total > 0 ? (completed / total * 100) : 0;
+    progressFill.style.width = pct + '%';
+    progressCount.textContent = completed + ' / ' + total;
+    
+    if (completed < total) {
+      var done = appState.batches.filter(function(b) { 
+        return b.status === 'done' || b.status === 'error'; 
+      }).length;
+      progressDetail.textContent = '已完成 ' + done + ' 批次';
+    } else {
+      progressDetail.textContent = '全部完成';
+    }
+  }
+
+  function finishProcessing() {
+    appState.isRunning = false;
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+    btnExport.disabled = false;
+    btnClear.disabled = false;
+
+    var total = appState.batches.length;
+    var done = appState.batches.filter(function(b) { return b.status === 'done'; }).length;
+    var failed = appState.batches.filter(function(b) { return b.status === 'error'; }).length;
+
+    if (appState.stopFlag) {
+      progressDetail.textContent = '已停止';
+      showToast('处理已停止', 'info');
+    } else {
+      progressDetail.textContent = '全部完成';
+      if (failed === 0) {
+        showToast('全部处理完成！共 ' + total + ' 批次', 'success');
+      } else {
+        showToast('处理完成：' + done + ' 成功，' + failed + ' 失败', 'error');
+      }
+    }
+    
+    progressCount.textContent = total + ' / ' + total;
+    progressFill.style.width = '100%';
+    updateStats();
+  }
+
+  // Update stats
+  function updateStats() {
+    if (!appState.batches.length) return;
+    
+    statsBar.classList.add('show');
+    
+    var total = appState.batches.length;
+    var success = appState.batches.filter(function(b){return b.status==='done'}).length;
+    var failed = appState.batches.filter(function(b){return b.status==='error'}).length;
+    
+    $('statTotal').textContent = total;
+    $('statSuccess').textContent = success;
+    $('statFailed').textContent = failed;
+    
+    if (appState.processingTimes.length > 0) {
+      var avg = Math.round(appState.processingTimes.reduce(function(a,b){return a+b},0) / appState.processingTimes.length / 1000);
+      $('statAvgTime').textContent = avg + 's';
+    }
+  }
+
+  // Search
+  searchInput.addEventListener('input', function() {
+    var term = this.value.toLowerCase().trim();
+    var cards = resultsList.querySelectorAll('.result-card');
+    
+    cards.forEach(function(card) {
+      var text = card.textContent.toLowerCase();
+      card.style.display = text.includes(term) ? '' : 'none';
+    });
+  });
+
+  // Stop
+  btnStop.addEventListener('click', function() {
+    appState.stopFlag = true;
+    btnStop.disabled = true;
+    progressDetail.textContent = '正在停止...';
+  });
+
+  // Start
+  btnStart.addEventListener('click', startProcessing);
+
+  // Clear
+  btnClear.addEventListener('click', function() {
+    appState.batches = [];
+    appState.processingTimes = [];
+    resultsList.innerHTML = '';
+    var empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.id = 'emptyState';
+    empty.innerHTML = `<div class="icon">📋</div><div class="text">上传 Excel 文件并点击「开始处理」<br>结果将显示在这里</div>`;
+    resultsList.appendChild(empty);
+    emptyState = empty;
+    
+    resultCount.textContent = '(0)';
+    btnExport.disabled = true;
+    progressArea.classList.remove('show');
+    progressFill.style.width = '0%';
+    statsBar.classList.remove('show');
+    searchInput.value = '';
+  });
+
+  // Export
+  btnExport.addEventListener('click', function() {
+    if (!appState.batches.length) {
+      showToast('没有可导出的数据', 'error');
+      return;
+    }
+
+    try {
+      var header = ['批次', '行范围', '输入 (Prompt)', '输出', '状态', '用时(s)'];
+      var rows = appState.batches.map(function(b) {
+        var time = b.endTime && b.startTime ? ((b.endTime - b.startTime) / 1000).toFixed(1) : '';
+        return [
+          '#' + (b.batchIndex + 1),
+          b.rowRange,
+          b.prompt,
+          b.output || '',
+          b.status === 'done' ? '成功' : (b.status === 'error' ? '失败' : '未完成'),
+          time
+        ];
+      });
+
+      var ws = XLSX.utils.aoa_to_sheet([header].concat(rows));
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '处理结果');
+
+      ws['!cols'] = [
+        {wch: 8}, {wch: 12}, {wch: 65}, {wch: 70}, {wch: 10}, {wch: 10}
+      ];
+
+      var wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      var blob = new Blob([wbout], { type: 'application/octet-stream' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'AI处理结果_' + new Date().toISOString().slice(0,10) + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast('导出成功！', 'success');
+    } catch(err) {
+      showToast('导出失败: ' + err.message, 'error');
+    }
+  });
+
+  // Keyboard shortcut
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !btnStart.disabled) {
+      e.preventDefault();
+      startProcessing();
+    }
+  });
+
+  // Save API key
+  try {
+    var savedKey = localStorage.getItem('deepseek_api_key');
+    if (savedKey) apiKeyInput.value = savedKey;
+  } catch(e) {}
+  
+  apiKeyInput.addEventListener('input', function() {
+    try { localStorage.setItem('deepseek_api_key', this.value.trim()); } catch(e) {}
+  });
+
+  // ==================== FEATURE 1: Prompt Templates ====================
+  var templates = [
+    {
+      title: "英文翻译",
+      desc: "将内容翻译成自然流畅的英文",
+      prompt: "请将以下内容翻译成自然流畅的英文：\n{Value}"
+    },
+    {
+      title: "中文翻译",
+      desc: "将内容翻译成专业中文",
+      prompt: "请将以下内容翻译成专业、流畅的中文：\n{Value}"
+    },
+    {
+      title: "关键词提取",
+      desc: "提取文本中的核心关键词",
+      prompt: "请从以下内容中提取 5-8 个核心关键词，用逗号分隔：\n{Value}"
+    },
+    {
+      title: "情感分析",
+      desc: "分析文本的情感倾向",
+      prompt: "请分析以下内容的感情色彩（正面/负面/中性），并简要说明理由：\n{Value}"
+    },
+    {
+      title: "内容分类",
+      desc: "对内容进行智能分类",
+      prompt: "请将以下内容分类到以下类别之一：产品、营销、技术、服务、其他。仅回复类别名称：\n{Value}"
+    },
+    {
+      title: "生成摘要",
+      desc: "生成简洁的内容摘要",
+      prompt: "请为以下内容生成一段 80 字以内的精炼摘要：\n{Value}"
+    },
+    {
+      title: "数据清洗",
+      desc: "清理和规范化文本数据",
+      prompt: "请清理以下文本：去除多余空格、统一格式、修正明显错误：\n{Value}"
+    },
+    {
+      title: "生成标题",
+      desc: "为内容生成吸引人的标题",
+      prompt: "请为以下内容生成 3 个吸引人的标题（每个标题一行）：\n{Value}"
+    },
+    {
+      title: "计算脚的数量（严格仅数字）",
+      desc: "适合鸡兔同笼等多列计算，只输出最终数字",
+      prompt: "根据{Value1}（动物）和{Value2}（数量），计算总脚数。\n鸡=2只脚，兔=4只脚，人=2只脚，桌子=4条腿。\n只输出最终计算结果的一个数字，不要任何解释、文字或换行。"
+    }
+  ];
+
+  function openTemplatesModal() {
+    var grid = $('templateGrid');
+    grid.innerHTML = '';
+    
+    templates.forEach(function(tpl, index) {
+      var card = document.createElement('div');
+      card.className = 'template-card';
+      card.innerHTML = `
+        <div class="title">${tpl.title}</div>
+        <div class="desc">${tpl.desc}</div>
+        <div class="example">${tpl.prompt.substring(0, 60)}...</div>
+      `;
+      
+      card.onclick = function() {
+        promptTemplate.value = tpl.prompt;
+        closeTemplatesModal();
+        showToast('已应用模板：' + tpl.title, 'success');
+      };
+      
+      grid.appendChild(card);
+    });
+    
+    templatesModal.classList.add('show');
+  }
+
+  function closeTemplatesModal() {
+    templatesModal.classList.remove('show');
+  }
+
+  openTemplatesBtn.addEventListener('click', openTemplatesModal);
+
+  // Preview first batch prompt
+  function previewFirstPrompt() {
+    if (!appState.rawData.length || appState.selectedColumns.length === 0) {
+      showToast('请先上传 Excel 并选择列', 'error');
+      return;
+    }
+    
+    var template = promptTemplate.value.trim();
+    if (!template) {
+      showToast('请先输入 Prompt 模板', 'error');
+      return;
+    }
+    
+    // Simulate first batch (1 row)
+    var firstRow = appState.rawData[0];
+    var values = appState.selectedColumns.map(function(colIdx) {
+      return firstRow[colIdx] || '';
+    });
+    
+    var preview = template;
+    preview = preview.replace(/\{Value\}/g, values.join(' | '));
+    
+    for (var c = 0; c < values.length; c++) {
+      var placeholder = '{Value' + (c + 1) + '}';
+      var regex = new RegExp(placeholder.replace(/\{/g, '\\{').replace(/\}/g, '\\}'), 'g');
+      preview = preview.replace(regex, values[c]);
+    }
+    
+    alert('第一行替换后的 Prompt（实际发送给 AI 的内容）：\n\n' + preview + 
+          '\n\n列对应关系：\n' + 
+          appState.selectedColumns.map(function(i, idx) { 
+            return '{Value' + (idx+1) + '} = ' + appState.headers[i] + ' → ' + (firstRow[i] || '(空)'); 
+          }).join('\n'));
+  }
+  
+  // Attach preview button (will be created dynamically)
+  setTimeout(function() {
+    var previewBtn = $('previewPromptBtn');
+    if (previewBtn) {
+      previewBtn.addEventListener('click', previewFirstPrompt);
+    }
+  }, 500);
+
+  // Close modal on outside click
+  templatesModal.addEventListener('click', function(e) {
+    if (e.target === templatesModal) closeTemplatesModal();
+  });
+
+  // ==================== FEATURE 2 & 3: Batch Controls ====================
+  // Expose functions globally for inline onclick
+  window.retryBatch = function(batchIndex) {
+    var batch = appState.batches[batchIndex];
+    if (!batch) return;
+    
+    var apiKey = getApiKey();
+    if (!apiKey) return;
+
+    batch.status = 'running';
+    batch.startTime = Date.now();
+    batch.error = null;
+    
+    var cards = resultsList.querySelectorAll('.result-card');
+    if (cards[batchIndex]) updateCard(cards[batchIndex], batch);
+    
+    callDeepSeek(batch.prompt, apiKey).then(function(output) {
+      batch.output = output;
+      batch.status = 'done';
+      batch.endTime = Date.now();
+      if (cards[batchIndex]) updateCard(cards[batchIndex], batch);
+      updateResultCount();
+      updateStats();
+      showToast('批次 #' + (batchIndex + 1) + ' 重新处理成功', 'success');
+    }).catch(function(err) {
+      batch.status = 'error';
+      batch.error = err.message;
+      if (cards[batchIndex]) updateCard(cards[batchIndex], batch);
+      showToast('重新处理失败', 'error');
+    });
+  };
+
+  window.editBatchPrompt = function(batchIndex) {
+    var batch = appState.batches[batchIndex];
+    if (!batch) return;
+    
+    var newPrompt = prompt('编辑此批次的 Prompt：', batch.prompt);
+    if (newPrompt !== null && newPrompt.trim() !== '') {
+      batch.prompt = newPrompt.trim();
+      var cards = resultsList.querySelectorAll('.result-card');
+      if (cards[batchIndex]) {
+        var inputBox = cards[batchIndex].querySelector('.input-box');
+        if (inputBox) inputBox.textContent = batch.prompt;
+      }
+      showToast('Prompt 已更新', 'success');
+    }
+  };
+
+  // Initial message
+  console.log('%c[Apple] Excel AI Batch Processor initialized with premium design + 3 powerful features', 'color:#007AFF');
+})();
+</script>
+
+</body>
+</html>
