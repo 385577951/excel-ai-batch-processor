@@ -30,11 +30,13 @@
 
 **主界面**
 
-![主界面预览](assets/hero.png)
-
 **处理结果示例**
 
 ![处理结果示例](assets/screenshot-processing.png)
+
+**更多截图**
+
+![运行结果](assets/screenshot-result.png)
 
 ### 🛠 快速开始
 
